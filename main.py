@@ -1,36 +1,26 @@
 from langchain_ollama import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate
-
+import vector as vec
 
 model = OllamaLLM(model="llama3.2:3b")
 
-template = """
-You are an expert in answering questions about Books
-"""
+def ask_with_rag(question: str) -> str:
+    # Retrieve relevant documents
+    retrieved_docs = vec.retriever.invoke(question)
+    
+    # Build prompt with context
+    prompt = f"You are a book expert. Answer the following question based on the book data provided.\n\n"
+    prompt += f"Here are the relevant books:\n\n"
+    
+    for i, doc in enumerate(retrieved_docs, 1):
+        prompt += f"=== Book {i} ===\n{doc.page_content}\n\n"
+    
+    prompt += f"Question: {question}\n\nProvide a clear answer based on the book data above:"
+    
+    # Generate answer
+    return model.invoke(prompt)
 
-templateForRAG = """
-You are an expert in answering questions about Books
-
-Here are the book details: {details}
-Please answer the question: {question}
-"""
-
-prompt = ChatPromptTemplate.from_template(template)
-chain = prompt | model
-
-promptForRAG = ChatPromptTemplate.from_template(templateForRAG)
-chainForRag = promptForRAG | model
-
-result = chain.invoke({
-    "question": "Which book is the highest rated?"
-})
-
-resultForRAG = chainForRag.invoke({
-    "details": [],
-    "question": "Which book is the highest rated?"
-})
-
-
-print(result)
-print("\n\n\n.............................................\n\n\n")
-print(resultForRAG)
+if __name__ == "__main__":
+    question = "Which book has the highest reviews count?"
+    
+    result = ask_with_rag(question)
+    print(result)
