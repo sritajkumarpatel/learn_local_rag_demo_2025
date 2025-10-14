@@ -89,4 +89,37 @@ Price: {row.get('final_price', 'N/A')}"""
 
 # Create a retriever for similarity search
 # Returns top 5 most similar documents for any query
-retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 3000})
+# Perform a sample query to test retrieval
+query = "Which book has the highest reviews count?"
+results = retriever.invoke(query)
+
+# Find the book with the highest reviews count from the results
+max_reviews_book = None
+max_reviews_count = 0
+
+for doc in results:
+    reviews_count = doc.metadata.get('reviews_count', 0)
+    # Convert to int if it's a string, handle 'N/A' or None values
+    try:
+        reviews_count = int(float(reviews_count)) if reviews_count else 0
+    except (ValueError, TypeError):
+        reviews_count = 0
+    
+    if reviews_count > max_reviews_count:
+        max_reviews_count = reviews_count
+        max_reviews_book = doc
+
+# Display the book with the highest reviews count (outside the loop)
+if max_reviews_book:
+    print(f"\n{'='*80}")
+    print(f"Book with Highest Reviews Count:")
+    print(f"{'='*80}")
+    print(f"Title: {max_reviews_book.metadata.get('title', 'N/A')}")
+    print(f"Reviews Count: {max_reviews_count:,}")
+    print(f"Rating: {max_reviews_book.metadata.get('rating', 'N/A')}")
+    print(f"Authors: {max_reviews_book.metadata.get('authors', 'N/A')}")
+    print(f"Price: {max_reviews_book.metadata.get('final_price', 'N/A')}")
+    print(f"{'='*80}")
+else:
+    print("\nNo valid book found with reviews count.")
