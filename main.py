@@ -33,7 +33,7 @@ def ask_with_rag(question: str) -> str:
 
 if __name__ == "__main__":
     # Example question to test the RAG system
-    question = "Which book has the highest reviews count?"
+    question = "Books about adventure?"
     
     # Get the answer using RAG
     result = ask_with_rag(question)
