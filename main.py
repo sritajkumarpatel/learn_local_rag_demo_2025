@@ -1,5 +1,5 @@
 from langchain_ollama import OllamaLLM
-import book_vector as vec
+import csv_vector as vec
 
 # Initialize the Ollama language model with llama3.2:3b
 model = OllamaLLM(model="llama3.2:3b")
