@@ -41,16 +41,16 @@ def ask_with_rag(question: str) -> str:
 
 if __name__ == "__main__":
     # Example question to test the RAG system
-    question = "Books about adventure?"
+    question = "Give me the book titles starting with A?"
     
-    # Get the answer using RAG
-    resultOne = ask_without_rag(question)
-    print(resultOne)
+    # Get the answer using LLM data only
+    resultFromRegularLLM = ask_without_rag(question)
+    print(resultFromRegularLLM)
 
     print("\n" + "="*60)
     print("WITH RAG (Using Vector Database)")
     print("="*60 + "\n")
 
     # Get the answer using RAG
-    result = ask_with_rag(question)
-    print(result)
+    resultFromRAGSystem = ask_with_rag(question)
+    print(resultFromRAGSystem)
