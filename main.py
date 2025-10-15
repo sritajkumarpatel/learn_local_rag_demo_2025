@@ -11,8 +11,9 @@ import csv_vector
 model = OllamaLLM(model="llama3.2:3b")
 
 # Load the vector database once at startup
-vectordb = csv_vector.create_vector_db_from_csv(force_rebuild=False)
-retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 10})
+vectordb_csvbooks = csv_vector.create_vector_db_from_csv(force_rebuild=False)
+retriever_csvbooks = vectordb_csvbooks.as_retriever(search_type="similarity", search_kwargs={"k": 10})
+
 
 def ask_without_rag(question: str) -> str:
     """
@@ -27,11 +28,12 @@ def ask_with_rag(question: str) -> str:
     
     Args:
         question: The user's question about books
+        retriever: The retriever instance to use for document retrieval
         
     Returns:
         AI-generated answer based on retrieved documents
     """
-    retrieved_docs = retriever.invoke(question)
+    retrieved_docs = retriever_csvbooks.invoke(question)
     
     prompt = f"You are a book expert. Answer the following question based on the book data provided.\n\n"
     prompt += f"Here are the relevant books:\n\n"
