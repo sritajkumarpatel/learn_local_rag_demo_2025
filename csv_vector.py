@@ -15,7 +15,6 @@ try:
 except Exception:
     from langchain.schema import Document
 
-# Configuration constants
 CSV_PATH = "book_dataset_500.csv"
 EMBEDDING_MODEL = "mxbai-embed-large:335m"
 DB_LOCATION = "./chroma_langchain_ollama_db"
@@ -31,7 +30,7 @@ def create_vector_db_from_csv(csv_path=CSV_PATH, persist_directory=DB_LOCATION, 
         force_rebuild (bool): If True, rebuild even if DB exists
         
     Returns:
-        Chroma: Vector database instance with retriever capability
+        Chroma: Vector database instance
     """
     
     if os.path.exists(persist_directory) and not force_rebuild:
@@ -104,8 +103,6 @@ Copies Sold: {copies_sold}"""
     return vectordb
 
 
-query = "Give popular books by author 'Timothy Wells' and 'Thomas Waters'"
-
 if __name__ == "__main__":
     vectordb = create_vector_db_from_csv(force_rebuild=False)
     
@@ -117,7 +114,7 @@ if __name__ == "__main__":
     print("EXAMPLE QUERY")
     print("="*80)
     retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 5})
-    query = query
+    query = "Give popular books by author 'Timothy Wells' and 'Thomas Waters'"
     print(f"\nQuery: {query}")
     results = retriever.invoke(query)
     
