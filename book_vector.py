@@ -1,108 +1,115 @@
-from langchain_ollama import OllamaEmbeddings
-from langchain_chroma import Chroma
-from langchain_core.documents import Document
+# updated_chroma_ollama_book_ingest.py
 import os
 import pandas as pd
+from langchain_ollama import OllamaEmbeddings
+from langchain_chroma import Chroma
 
-# Load the Amazon books dataset from CSV
-df = pd.read_csv("Amazon_popular_books_dataset.csv")
+# Use this import if your LangChain version exposes Document here.
+# If that import fails in your environment, try: from langchain.schema import Document
+try:
+    from langchain_core.documents import Document
+except Exception:
+    from langchain.schema import Document
 
-# Initialize Ollama embeddings model for vector representation
+CSV_PATH = "book_dataset_500.csv"  # <- your CSV file (change if needed)
+DB_LOCATION = "./chroma_langchain_ollama_db"
+
+# Load CSV
+if not os.path.exists(CSV_PATH):
+    raise FileNotFoundError(f"CSV file not found at {CSV_PATH}. Put your CSV there or update CSV_PATH.")
+
+df = pd.read_csv(CSV_PATH)
+print("Loaded CSV with columns:", df.columns.tolist())
+print("Total rows:", len(df))
+
+# --- Configuration / Embeddings / DB init ---
 embeddings = OllamaEmbeddings(model="mxbai-embed-large:335m")
 
-# Define the persistent storage location for the vector database
-db_location = "./chroma_langchain_ollama_db"
+# Only add documents when DB does not already exist
+add_documents = not os.path.exists(DB_LOCATION)
 
-# Check if database already exists to avoid duplicate data insertion
-add_documents = not os.path.exists(db_location)
+vectordb = Chroma(embedding_function=embeddings, persist_directory=DB_LOCATION)
 
-# Initialize or load the Chroma vector database with the embedding function
-vectordb = Chroma(embedding_function=embeddings, persist_directory=db_location)
-
-# Only add documents if this is the first time creating the database
 if add_documents:
     documents = []
-    
-    # Process each book entry in the dataset
+    # A mapping from our CSV column names to the names used in the Document's page_content and metadata
+    # Adjust these keys if your CSV uses different column names
+    # Expected CSV columns (from the dataset generated earlier): 
+    # ['title', 'rating', 'review_counts', 'publication_house', 'author', 'publishing_date', 'copies_sold']
     for index, row in df.iterrows():
-        # Format the main content with essential book information for retrieval
-        # This content will be embedded and used for similarity search
-        page_content = f"""Title: {row.get('title', 'N/A')}
-Rating: {row.get('rating', 'N/A')}
-Reviews Count: {row.get('reviews_count', 'N/A')}
-Authors: {row.get('authors', 'N/A')}
-Publisher: {row.get('publisher', 'N/A')}
-Publication Date: {row.get('publication_date', 'N/A')}
-Categories: {row.get('categories', 'N/A')}
-Price: {row.get('final_price', 'N/A')}"""
-        
-        # Create a Document object with page content and comprehensive metadata
-        # Metadata allows for filtering and additional context without affecting embeddings
-        doc = Document(
-            page_content=page_content,
-            metadata={
-                "availability": row.get("availability"),
-                "brand": row.get("brand"),
-                "currency": row.get("currency"),
-                "date_first_available": row.get("date_first_available"),
-                "delivery": row.get("delivery"),
-                "department": row.get("department"),
-                "discount": row.get("discount"),
-                "domain": row.get("domain"),
-                "features": row.get("features"),
-                "final_price": row.get("final_price"),
-                "format": row.get("format"),
-                "image_url": row.get("image_url"),
-                "images_count": row.get("images_count"),
-                "initial_price": row.get("initial_price"),
-                "item_weight": row.get("item_weight"),
-                "manufacturer": row.get("manufacturer"),
-                "model_number": row.get("model_number"),
-                "plus_content": row.get("plus_content"),
-                "product_dimensions": row.get("product_dimensions"),
-                "rating": row.get("rating"),
-                "reviews_count": row.get("reviews_count"),
-                "root_bs_rank": row.get("root_bs_rank"),
-                "seller_id": row.get("seller_id"),
-                "seller_name": row.get("seller_name"),
-                "timestamp": row.get("timestamp"),
-                "title": row.get("title"),
-                "upc": row.get("upc"),
-                "url": row.get("url"),
-                "video": row.get("video"),
-                "video_count": row.get("video_count"),
-                "categories": row.get("categories"),
-                "best_sellers_rank": row.get("best_sellers_rank"),
-                "buybox_seller": row.get("buybox_seller"),
-                "image": row.get("image"),
-                "number_of_sellers": row.get("number_of_sellers"),
-                "colors": row.get("colors")
-            }
-        )
+        # Safely fetch values using .get-like behavior for pandas Series
+        def val(key, default="N/A"):
+            return row[key] if key in df.columns else default
+
+        title = val("title")
+        rating = val("rating")
+        reviews_count = val("review_counts") if "review_counts" in df.columns else val("reviews_count")
+        publication_house = val("publication_house") if "publication_house" in df.columns else val("publisher")
+        author = val("author") if "author" in df.columns else val("authors")
+        publishing_date = val("publishing_date") if "publishing_date" in df.columns else val("publication_date")
+        copies_sold = val("copies_sold")
+
+        page_content = f"""Title: {title}
+Rating: {rating}
+Reviews Count: {reviews_count}
+Author: {author}
+Publisher: {publication_house}
+Publication Date: {publishing_date}
+Copies Sold: {copies_sold}
+"""
+
+        metadata = {
+            "title": title,
+            "rating": rating,
+            "reviews_count": reviews_count,
+            "author": author,
+            "publisher": publication_house,
+            "publication_date": publishing_date,
+            "copies_sold": copies_sold,
+            # add any other CSV columns you want to keep as metadata
+        }
+
+        doc = Document(page_content=page_content, metadata=metadata)
         documents.append(doc)
-    
-    # Add all documents to the vector database
+
+        # print first row example for verification
+        if index == 0:
+            print("Sample Document page_content:\n", page_content)
+            print("Sample metadata:\n", metadata)
+
+    # add documents in one call (or batch if memory concerns)
+    print(f"Adding {len(documents)} documents to Chroma DB at {DB_LOCATION} ...")
     vectordb.add_documents(documents)
-    
-    # Persist the database to disk for future use
     vectordb.persist()
+    print("Persisted vector DB.")
+else:
+    print("Vector DB already exists. Skipping document ingestion.")
 
-# Create a retriever for similarity search
-# Returns top 10 most similar documents for any query
-retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 10})
-# Perform a sample query to test retrieval
-query = "Books about adventure?"
-results = retriever.invoke(query)
-print(results)
+# --- Create retriever and run a test query ---
+# Important: ensure search_kwargs uses numeric k only (no stray shell commands or concatenations)
+retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 5})
 
-# Print results in a well-formatted list
-print("\n" + "="*80)
-print(f"Query: {query}")
-print("="*80 + "\n")
+# Example queries (customize as required)
+queries = [
+    # "books with rating 4.0 and above",
+    "popular books by author 'Timothy Wells'",    # example; replace author name with one in your CSV
+    # "books that sold more than 50000 copies"
+]
 
-for i, doc in enumerate(results, 1):
-    print(f"{i}. {doc.metadata.get('title', 'N/A')}")
-    print(f"   Rating: {doc.metadata.get('rating', 'N/A')} | Reviews: {doc.metadata.get('reviews_count', 'N/A')}")
-    print(f"   Price: {doc.metadata.get('final_price', 'N/A')}")
-    print(f"   Categories: {doc.metadata.get('categories', 'N/A')}")
-    print("-" * 80)
+for q in queries:
+    print("\n" + "="*80)
+    print(f"Query: {q}")
+    print("="*80)
+    results = retriever.get_relevant_documents(q)  # returns list[Document]
+    if not results:
+        print("No results found.")
+        continue
+
+    for i, doc in enumerate(results, start=1):
+        md = doc.metadata or {}
+        print(f"{i}. {md.get('title','N/A')}")
+        print(f"   Rating: {md.get('rating','N/A')} | Reviews: {md.get('reviews_count','N/A')} | Copies Sold: {md.get('copies_sold','N/A')}")
+        print(f"   Publisher: {md.get('publisher','N/A')} | Author: {md.get('author','N/A')}")
+        print("-"*80)
+
+# If you want to reuse vectordb across sessions without reloading, simply run the block after the DB exists.

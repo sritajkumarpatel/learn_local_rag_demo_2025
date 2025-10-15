@@ -41,7 +41,7 @@ def ask_with_rag(question: str) -> str:
 
 if __name__ == "__main__":
     # Example question to test the RAG system
-    question = "Give me the book titles starting with A?"
+    question = "10 popular books by author 'Timothy Wells'" # Replace with an author name from your CSV
     
     # Get the answer using LLM data only
     resultFromRegularLLM = ask_without_rag(question)
