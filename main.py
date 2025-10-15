@@ -1,8 +1,12 @@
 from langchain_ollama import OllamaLLM
-import csv_vector as vec
+import csv_vector
 
 # Initialize the Ollama language model with llama3.2:3b
 model = OllamaLLM(model="llama3.2:3b")
+
+# Load the vector database once at startup
+vectordb = csv_vector.create_vector_db_from_csv(force_rebuild=False)
+retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 10})
 
 def ask_without_rag(question: str) -> str:
     """
@@ -23,7 +27,7 @@ def ask_with_rag(question: str) -> str:
         AI-generated answer based on retrieved relevant documents
     """
     # Retrieve relevant documents from the vector store based on the question
-    retrieved_docs = vec.retriever.invoke(question)
+    retrieved_docs = retriever.invoke(question)
     
     # Build the initial prompt with system instructions
     prompt = f"You are a book expert. Answer the following question based on the book data provided.\n\n"
@@ -39,10 +43,12 @@ def ask_with_rag(question: str) -> str:
     # Generate and return the answer using the LLM
     return model.invoke(prompt)
 
+user_question = "Give popular books by author 'Timothy Wells' and 'Thomas Waters'"
+
 if __name__ == "__main__":
     # Example question to test the RAG system
-    question = "10 popular books by author 'Timothy Wells'" # Replace with an author name from your CSV
-    
+    question = user_question
+
     # Get the answer using LLM data only
     resultFromRegularLLM = ask_without_rag(question)
     print(resultFromRegularLLM)

@@ -1,43 +1,64 @@
-# updated_chroma_ollama_book_ingest.py
+"""
+CSV Vector Database Module
+===========================
+Creates embeddings from CSV book data and stores them in ChromaDB
+for semantic search and retrieval.
+"""
+
 import os
 import pandas as pd
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 
-# Use this import if your LangChain version exposes Document here.
-# If that import fails in your environment, try: from langchain.schema import Document
 try:
     from langchain_core.documents import Document
 except Exception:
     from langchain.schema import Document
 
-CSV_PATH = "book_dataset_500.csv"  # <- your CSV file (change if needed)
+# Configuration constants
+CSV_PATH = "book_dataset_500.csv"
+EMBEDDING_MODEL = "mxbai-embed-large:335m"
 DB_LOCATION = "./chroma_langchain_ollama_db"
 
-# Load CSV
-if not os.path.exists(CSV_PATH):
-    raise FileNotFoundError(f"CSV file not found at {CSV_PATH}. Put your CSV there or update CSV_PATH.")
 
-df = pd.read_csv(CSV_PATH)
-print("Loaded CSV with columns:", df.columns.tolist())
-print("Total rows:", len(df))
-
-# --- Configuration / Embeddings / DB init ---
-embeddings = OllamaEmbeddings(model="mxbai-embed-large:335m")
-
-# Only add documents when DB does not already exist
-add_documents = not os.path.exists(DB_LOCATION)
-
-vectordb = Chroma(embedding_function=embeddings, persist_directory=DB_LOCATION)
-
-if add_documents:
+def create_vector_db_from_csv(csv_path=CSV_PATH, persist_directory=DB_LOCATION, force_rebuild=False):
+    """
+    Create or load a vector database from CSV book data.
+    
+    Args:
+        csv_path (str): Path to CSV file
+        persist_directory (str): Where to save the vector database
+        force_rebuild (bool): If True, rebuild even if DB exists
+        
+    Returns:
+        Chroma: Vector database instance with retriever capability
+    """
+    
+    if os.path.exists(persist_directory) and not force_rebuild:
+        print(f"Loading existing vector DB from {persist_directory}")
+        embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+        vectordb = Chroma(
+            embedding_function=embeddings,
+            persist_directory=persist_directory
+        )
+        print(f"✓ Loaded existing DB with {vectordb._collection.count()} documents")
+        return vectordb
+    
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"CSV file not found at {csv_path}")
+    
+    print("Step 1: Loading CSV data...")
+    df = pd.read_csv(csv_path)
+    print(f"✓ Loaded {len(df)} books from CSV")
+    
+    print(f"\nStep 2: Initializing embedding model ({EMBEDDING_MODEL})...")
+    embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+    print("✓ Embedding model initialized")
+    
+    print("\nStep 3: Creating documents...")
     documents = []
-    # A mapping from our CSV column names to the names used in the Document's page_content and metadata
-    # Adjust these keys if your CSV uses different column names
-    # Expected CSV columns (from the dataset generated earlier): 
-    # ['title', 'rating', 'review_counts', 'publication_house', 'author', 'publishing_date', 'copies_sold']
+    
     for index, row in df.iterrows():
-        # Safely fetch values using .get-like behavior for pandas Series
         def val(key, default="N/A"):
             return row[key] if key in df.columns else default
 
@@ -55,8 +76,7 @@ Reviews Count: {reviews_count}
 Author: {author}
 Publisher: {publication_house}
 Publication Date: {publishing_date}
-Copies Sold: {copies_sold}
-"""
+Copies Sold: {copies_sold}"""
 
         metadata = {
             "title": title,
@@ -66,50 +86,46 @@ Copies Sold: {copies_sold}
             "publisher": publication_house,
             "publication_date": publishing_date,
             "copies_sold": copies_sold,
-            # add any other CSV columns you want to keep as metadata
         }
 
-        doc = Document(page_content=page_content, metadata=metadata)
-        documents.append(doc)
+        documents.append(Document(page_content=page_content, metadata=metadata))
+    
+    print(f"✓ Created {len(documents)} documents")
+    
+    print(f"\nStep 4: Creating vector database and generating embeddings...")
+    vectordb = Chroma.from_documents(
+        documents=documents,
+        embedding=embeddings,
+        persist_directory=persist_directory
+    )
+    
+    print(f"✓ Vector DB created and saved to {persist_directory}")
+    
+    return vectordb
 
-        # print first row example for verification
-        if index == 0:
-            print("Sample Document page_content:\n", page_content)
-            print("Sample metadata:\n", metadata)
 
-    # add documents in one call (or batch if memory concerns)
-    print(f"Adding {len(documents)} documents to Chroma DB at {DB_LOCATION} ...")
-    vectordb.add_documents(documents)
-    vectordb.persist()
-    print("Persisted vector DB.")
-else:
-    print("Vector DB already exists. Skipping document ingestion.")
+query = "Give popular books by author 'Timothy Wells' and 'Thomas Waters'"
 
-# --- Create retriever and run a test query ---
-# Important: ensure search_kwargs uses numeric k only (no stray shell commands or concatenations)
-retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 5})
-
-# Example queries (customize as required)
-queries = [
-    # "books with rating 4.0 and above",
-    "popular books by author 'Timothy Wells'",    # example; replace author name with one in your CSV
-    # "books that sold more than 50000 copies"
-]
-
-for q in queries:
+if __name__ == "__main__":
+    vectordb = create_vector_db_from_csv(force_rebuild=False)
+    
     print("\n" + "="*80)
-    print(f"Query: {q}")
+    print("Vector database created successfully!")
     print("="*80)
-    results = retriever.get_relevant_documents(q)  # returns list[Document]
+    
+    print("\n" + "="*80)
+    print("EXAMPLE QUERY")
+    print("="*80)
+    retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+    query = query
+    print(f"\nQuery: {query}")
+    results = retriever.invoke(query)
+    
     if not results:
         print("No results found.")
-        continue
-
-    for i, doc in enumerate(results, start=1):
-        md = doc.metadata or {}
-        print(f"{i}. {md.get('title','N/A')}")
-        print(f"   Rating: {md.get('rating','N/A')} | Reviews: {md.get('reviews_count','N/A')} | Copies Sold: {md.get('copies_sold','N/A')}")
-        print(f"   Publisher: {md.get('publisher','N/A')} | Author: {md.get('author','N/A')}")
-        print("-"*80)
-
-# If you want to reuse vectordb across sessions without reloading, simply run the block after the DB exists.
+    else:
+        for i, doc in enumerate(results, 1):
+            md = doc.metadata
+            print(f"\n{i}. {md.get('title','N/A')}")
+            print(f"   Rating: {md.get('rating','N/A')} | Reviews: {md.get('reviews_count','N/A')}")
+            print(f"   Author: {md.get('author','N/A')} | Publisher: {md.get('publisher','N/A')}")
