@@ -1,8 +1,16 @@
 from langchain_ollama import OllamaLLM
-import vector as vec
+import book_vector as vec
 
 # Initialize the Ollama language model with llama3.2:3b
 model = OllamaLLM(model="llama3.2:3b")
+
+def ask_without_rag(question: str) -> str:
+    """
+    Ask the LLM directly WITHOUT any context from the vector database.
+    The model will answer based only on its training data.
+    """
+    prompt = f"You are a book expert. Answer the following question:\n\nQuestion: {question}\n\nAnswer:"
+    return model.invoke(prompt)
 
 def ask_with_rag(question: str) -> str:
     """
@@ -35,6 +43,14 @@ if __name__ == "__main__":
     # Example question to test the RAG system
     question = "Books about adventure?"
     
+    # Get the answer using RAG
+    resultOne = ask_without_rag(question)
+    print(resultOne)
+
+    print("\n" + "="*60)
+    print("WITH RAG (Using Vector Database)")
+    print("="*60 + "\n")
+
     # Get the answer using RAG
     result = ask_with_rag(question)
     print(result)
