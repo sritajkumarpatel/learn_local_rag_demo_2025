@@ -15,9 +15,9 @@ try:
 except Exception:
     from langchain.schema import Document
 
-CSV_PATH = "book_dataset_500.csv"
+CSV_PATH = "./csvs/book_dataset_500.csv"
 EMBEDDING_MODEL = "mxbai-embed-large:335m"
-DB_LOCATION = "./chroma_csv_db_books"
+DB_LOCATION = "./chroma_csv_db"
 
 
 def create_vector_db_from_csv(csv_path=CSV_PATH, persist_directory=DB_LOCATION, force_rebuild=False):
