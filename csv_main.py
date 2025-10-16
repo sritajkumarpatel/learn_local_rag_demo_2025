@@ -50,12 +50,16 @@ user_question = "Give popular books by author 'Timothy Wells' and 'Thomas Waters
 if __name__ == "__main__":
     question = user_question
 
+    # Get the answer using LLM data only
+    print("WITHOUT RAG (Using LLM Knowledge Only)")
+    print("="*80)
     resultFromRegularLLM = ask_without_rag(question)
     print(resultFromRegularLLM)
 
-    print("\n" + "="*60)
-    print("WITH RAG (Using Vector Database)")
-    print("="*60 + "\n")
+    print("\n" + "="*80)
+    print("WITH RAG (Using CSV Content)")
+    print("="*80)
 
+    # Get the answer using RAG with CSV content
     resultFromRAGSystem = ask_with_rag(question)
     print(resultFromRAGSystem)
