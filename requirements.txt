@@ -4,3 +4,4 @@ langchain-chroma
 chromadb
 pypdf
 pytest
+langchain-community

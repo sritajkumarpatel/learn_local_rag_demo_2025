@@ -170,6 +170,8 @@ cython_debug/
 
 # Vector database directory (ChromaDB)
 chroma_langchain_ollama_db/
+chroma_csv_db_books/
+pdf_chroma_db/
 
 # Data files (uncomment if you don't want to track datasets)
 # *.csv
