@@ -173,6 +173,7 @@ chroma_langchain_ollama_db/
 chroma_csv_db_books/
 chroma_csv_db/
 pdf_chroma_db/
+web_chroma_db/
 
 # Data files (uncomment if you don't want to track datasets)
 # *.csv

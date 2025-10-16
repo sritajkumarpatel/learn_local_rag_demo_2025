@@ -5,3 +5,5 @@ chromadb
 pypdf
 pytest
 langchain-community
+requests
+beautifulsoup4
