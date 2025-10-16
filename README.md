@@ -1,4 +1,4 @@
-# Local AI Agents RAG Demo Project
+# Local RAG Demo Project
 
 A comprehensive demonstration of Retrieval-Augmented Generation (RAG) using local AI models, comparing LLM-only responses versus RAG-enhanced answers across different data sources (CSV, PDF, and web content).
 
