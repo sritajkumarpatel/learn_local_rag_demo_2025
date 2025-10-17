@@ -7,3 +7,4 @@ pytest
 langchain-community
 requests
 beautifulsoup4
+pandas

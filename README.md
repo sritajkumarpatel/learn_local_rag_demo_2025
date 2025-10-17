@@ -92,6 +92,7 @@ CHUNK_OVERLAP = 200    # Overlap between chunks
 - [ ] Ollama installed and running
 - [ ] Required Ollama models downloaded
 - [ ] Git repository cloned
+- [ ] Python virtual environment created and activated
 - [ ] Dependencies installed
 
 ### 1. Install Ollama
@@ -120,13 +121,30 @@ ollama pull llama3.2:3b
 ollama pull mxbai-embed-large:335m
 ```
 
-### 3. Install Python Dependencies
+### 3. Set Up Python Environment
 
-```bash
+```powershell
+# Navigate to project directory
+cd "c:\Users\SKPATEL\OneDrive - DevOn India-NL BV\2025_Year_03\Learnings\AI\learn_local_rag_demo_2025"
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# If you get execution policy errors, run this first:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+### 4. Install Python Dependencies
+
+```powershell
+# Install requirements (with virtual environment activated)
 pip install -r requirements.txt
 ```
 
-### 4. Verify Ollama is Running
+### 5. Verify Ollama is Running
 
 ```bash
 ollama list
@@ -138,6 +156,23 @@ NAME                    ID              SIZE    MODIFIED
 llama3.2:3b            4aa6152e2ccb    2.0 GB  2 hours ago
 mxbai-embed-large:335m 468836162de7    334 MB 2 hours ago
 ```
+
+## 🗄️ Building Vector Databases
+
+Before running the demos, you need to create the vector databases for each data source. Run these scripts to process your data and build the vector databases:
+
+```powershell
+# Build CSV vector database (processes book data)
+python csv_vector.py
+
+# Build PDF vector database (processes PDF files in ./pdfs/)
+python pdf_vector.py
+
+# Build web vector database (processes web URLs)
+python web_vector.py
+```
+
+**Note:** These scripts will create persistent vector databases in `chroma_csv_db/`, `pdf_chroma_db/`, and `web_chroma_db/` directories. They only process new data and reuse existing databases when possible.
 
 ## 🎮 Running the Demos
 
@@ -167,27 +202,6 @@ python web_main.py
 ```
 
 **Example Query:** "Who identified dragon bones?"
-
-## 🧪 Testing
-
-### Available Tests
-Currently, only PDF vector database tests are implemented:
-
-```bash
-# Run PDF vector tests
-python test_pdf_vector.py
-
-# Or with pytest
-pytest test_pdf_vector.py -v
-```
-
-### Test Coverage
-The test suite verifies:
-- Vector database creation and persistence
-- Document chunking and embedding
-- Similarity search functionality
-- Metadata preservation
-- Retriever functionality
 
 ## 🔧 Development Workflows
 
@@ -275,8 +289,7 @@ logging.basicConfig(level=logging.DEBUG)
 1. Create `*_vector.py` for data processing and vector DB management
 2. Create `*_main.py` for RAG vs non-RAG comparison demo
 3. Follow the established patterns for consistency
-4. Add appropriate tests
-5. Update this README
+4. Update this README
 
 ### Code Style
 - Follow existing naming conventions (`*_vector.py`, `*_main.py`)
