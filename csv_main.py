@@ -24,10 +24,10 @@ def ask_without_rag(question: str) -> str:
 
 def ask_with_rag(question: str) -> str:
     """
-    Answer questions using Retrieval-Augmented Generation with book data.
+    Answer questions using Retrieval-Augmented Generation with pdf data.
     
     Args:
-        question: The user's question about books
+        question: The user's question about pdf documents
         retriever: The retriever instance to use for document retrieval
         
     Returns:
